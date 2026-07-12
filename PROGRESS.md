@@ -148,6 +148,30 @@ instead of the receiving number in forwarded emails.
       now auto-detects (API 33+ path) or type their number into the new
       optional field and save.
 
+**GitHub + Obtainium update channel (2026-07-12):**
+- [x] Project is now a git repo, pushed to the public repo
+      https://github.com/phinnite/SmsSender (gh CLI authenticated as
+      phinnite; git identity set to the GitHub noreply email so the
+      Gmail address isn't exposed in public commits).
+- [x] Version bumped to versionCode 2 / versionName "1.1" and released:
+      https://github.com/phinnite/SmsSender/releases/tag/v1.1 with
+      `SmsSender-1.1.apk` attached (debug-signed, same keystore as the
+      installs on both phones — all future builds must come from this PC
+      or updates will be rejected for signature mismatch).
+- [x] Added README.md; `.claude/settings.local.json` gitignored.
+- [ ] Install Obtainium (github.com/ImranR98/Obtainium) on both phones,
+      grant it "Install unknown apps", add https://github.com/phinnite/SmsSender
+      as a tracked app, and update both phones to v1.1 through it (this
+      v1.1 install also covers the pending multi-part-SMS and
+      receiving-line on-device verifications above).
+- **Release process for future changes:** bump `versionCode` (+1) and
+  `versionName` in app/build.gradle.kts, commit + push, build
+  (`assembleDebug -q`), then
+  `gh release create vX.Y <apk> --title vX.Y --notes-file <file>`
+  (rename the apk to SmsSender-X.Y.apk first; use --notes-file, inline
+  --notes with parentheses hit PowerShell quoting issues). Obtainium
+  picks it up from there — phones get an update notification.
+
 **Next steps:**
 - [ ] Keep an eye on whether forwarding silently stops after long idle
       periods — Samsung can re-add an app to the sleeping-apps list over
