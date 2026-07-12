@@ -15,9 +15,7 @@ via Gmail SMTP.
 - Min SDK: 24 (Android 7.0), Target/Compile SDK: 34
 - Build system: Gradle with Kotlin DSL (`build.gradle.kts`)
 - IDE: Android Studio
-- Author's background: experienced in other programming languages
-  (backend/Java/Spring Boot), but new to Android/mobile development —
-  explain Android-specific concepts (manifest, activities, broadcast
+- Explain Android-specific concepts (manifest, activities, broadcast
   receivers, gradle) rather than assuming familiarity.
 
 ## Architecture
