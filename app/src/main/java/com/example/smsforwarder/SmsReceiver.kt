@@ -13,13 +13,27 @@ import androidx.core.content.ContextCompat
 
 class SmsReceiver : BroadcastReceiver() {
 
+    companion object {
+        private const val TAG = "SmsReceiver"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
+        FileLog.d(context, TAG, "onReceive: action=${intent.action}")
         if (intent.action != "android.provider.Telephony.SMS_RECEIVED") return
 
-        val bundle = intent.extras ?: return
-        val pdus = bundle.get("pdus") as? Array<*> ?: return
+        val bundle = intent.extras
+        if (bundle == null) {
+            FileLog.w(context, TAG, "onReceive: no extras in intent, aborting")
+            return
+        }
+        val pdus = bundle.get("pdus") as? Array<*>
+        if (pdus == null) {
+            FileLog.w(context, TAG, "onReceive: no pdus in extras, aborting")
+            return
+        }
         val format = bundle.getString("format")
         val receivedOn = resolveReceivingLine(context, bundle)
+        FileLog.d(context, TAG, "onReceive: ${pdus.size} pdu(s), format=$format, receivedOn=$receivedOn")
 
         // goAsync() lets us keep working briefly after onReceive returns,
         // since network calls can't run directly on this thread in time.
@@ -33,10 +47,16 @@ class SmsReceiver : BroadcastReceiver() {
                 val segments = pdus.map { SmsMessage.createFromPdu(it as ByteArray, format) }
                 val sender = segments.firstOrNull()?.originatingAddress ?: "unknown"
                 val body = segments.joinToString("") { it.messageBody ?: "" }
+                FileLog.d(context, TAG, "onReceive: sender=$sender, body length=${body.length}")
 
                 if (shouldForward(context, sender, body)) {
+                    FileLog.i(context, TAG, "onReceive: forwarding SMS from $sender")
                     EmailSender.send(context, sender, receivedOn, body)
+                } else {
+                    FileLog.i(context, TAG, "onReceive: SMS from $sender did not match keyword filter, skipping")
                 }
+            } catch (e: Exception) {
+                FileLog.e(context, TAG, "onReceive: error processing SMS", e)
             } finally {
                 pendingResult.finish()
             }
@@ -54,7 +74,10 @@ class SmsReceiver : BroadcastReceiver() {
         val hasPermission =
             ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED
-        if (!hasPermission) return "Unknown line"
+        if (!hasPermission) {
+            FileLog.w(context, TAG, "resolveReceivingLine: missing READ_PHONE_STATE/READ_PHONE_NUMBERS permission")
+            return "Unknown line"
+        }
 
         val subId = bundle.getInt("subscription", -1).let {
             if (it != -1) it else SubscriptionManager.getDefaultSmsSubscriptionId()
@@ -76,6 +99,7 @@ class SmsReceiver : BroadcastReceiver() {
                 "SIM ${info.simSlotIndex + 1} ($carrier)"
             }
         } catch (e: SecurityException) {
+            FileLog.w(context, TAG, "resolveReceivingLine: SecurityException reading subscription info")
             "Unknown line"
         }
     }
@@ -96,9 +120,13 @@ class SmsReceiver : BroadcastReceiver() {
 
     private fun shouldForward(context: Context, sender: String, body: String): Boolean {
         val keywordsRaw = Prefs.keywords(context)
-        if (keywordsRaw.isBlank()) return true // no filter set = forward everything
+        if (keywordsRaw.isBlank()) {
+            FileLog.d(context, TAG, "shouldForward: no keyword filter set, forwarding everything")
+            return true // no filter set = forward everything
+        }
 
         val keywords = keywordsRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        FileLog.d(context, TAG, "shouldForward: checking against keywords=$keywords")
         return keywords.any { sender.contains(it, ignoreCase = true) || body.contains(it, ignoreCase = true) }
     }
 }

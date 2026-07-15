@@ -1,7 +1,6 @@
 package com.example.smsforwarder
 
 import android.content.Context
-import android.util.Log
 import java.util.Properties
 import javax.mail.Message
 import javax.mail.PasswordAuthentication
@@ -19,7 +18,7 @@ object EmailSender {
         val destEmail = Prefs.destEmail(context)
 
         if (gmailAddress.isBlank() || appPassword.isBlank() || destEmail.isBlank()) {
-            Log.e(TAG, "Missing settings, cannot send email")
+            FileLog.e(context, TAG, "Missing settings, cannot send email")
             return
         }
 
@@ -44,9 +43,9 @@ object EmailSender {
                 setText("Received on: $receivedOn\n\n$body")
             }
             Transport.send(message)
-            Log.i(TAG, "Email sent for SMS from $sender")
+            FileLog.i(context, TAG, "Email sent for SMS from $sender")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send email", e)
+            FileLog.e(context, TAG, "Failed to send email", e)
         }
     }
 }

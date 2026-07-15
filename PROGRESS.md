@@ -172,6 +172,56 @@ instead of the receiving number in forwarded emails.
   --notes with parentheses hit PowerShell quoting issues). Obtainium
   picks it up from there — phones get an update notification.
 
+**Debug logging + UI polish (2026-07-15):**
+- [x] Added `FileLog.kt` — a `Log`-alike helper that mirrors every log call to
+      both Logcat AND a capped (~200KB) `debug_log.txt` in app-private
+      `filesDir`. Needed because Logcat is only visible while a PC is actively
+      watching via adb at the moment an SMS arrives — useless for a phone in
+      daily use elsewhere (e.g. parents' phone). `SmsReceiver` (previously had
+      ZERO logging) and `EmailSender` now log the full path through
+      `FileLog.*`: broadcast received, missing pdus/extras, sender + body
+      length, receiving-line resolution, permission-missing, keyword
+      pass/fail, forward decision, send success/failure.
+- [x] Added `LogActivity.kt` + `activity_log.xml` — full-screen "Debug Log"
+      page (opened from a new "View Debug Log" button on the settings screen),
+      readable on the phone itself with NO adb needed. Has a bold "Debug Log"
+      header (the app theme is `...NoActionBar`, so a TextView header is used
+      instead of an action-bar title — `supportActionBar` is null here),
+      monospace 15sp selectable text, and side-by-side Back + Clear Log
+      buttons. Registered in manifest (`exported="false"`).
+- [x] Keywords field: added `inputType="text"` + `imeOptions="actionNext"` so
+      Enter advances to the next field instead of inserting a newline (it had
+      no inputType, which defaulted to multi-line). Parsing unchanged.
+- [x] Merged the two email fields ("Gmail address (sender)" + "Forward to
+      email address") into one "Your Gmail address" field — the user always
+      uses the same address for both. `MainActivity` writes the single value
+      to BOTH the `gmail_address` and `dest_email` prefs keys; `Prefs.kt` and
+      `EmailSender.kt` untouched (still conceptually sender vs. destination,
+      just identical values), so re-adding a separate destination later is a
+      one-field change. NOTE: an old separately-saved `dest_email` persists
+      until the next Save re-converges both keys.
+- [x] "Grant Permissions" button now handles the permanently-denied case:
+      once a permission is denied for good, `requestPermissions()` is a silent
+      no-op, so the button deep-links to app settings
+      (`ACTION_APPLICATION_DETAILS_SETTINGS`) instead. Uses a new
+      `perms_requested` pref flag to disambiguate "never asked" from
+      "permanently denied" (both make `shouldShowRequestPermissionRationale`
+      return false). Startup auto-request behavior unchanged.
+- [x] Last field ("This phone's number") was hidden behind the keyboard:
+      added an `onFocusChange` listener that `smoothScrollTo`s the bottom
+      after a 100ms delay (lets the keyboard settle so the resize is applied),
+      plus 60dp bottom padding on the form to give the scroll room to lift the
+      field + its helper text clear of the keyboard.
+- [x] All build-verified on the user's own phone this session (installed via
+      `gradlew.bat installDebug`); debug-log path confirmed working end-to-end
+      (real GOMO-AIS SMS logged received → keyword match → email sent).
+- [ ] Not yet deployed to parents' phone. Next session: install this build
+      there, reproduce the failure, and read the on-device Debug Log to see
+      where it breaks (never fires = OS killing it / stopped-state / battery
+      restriction; fires but no send = permission or SMTP issue). NOT yet
+      released via GitHub/Obtainium — versionCode still 2 / "1.1"; bump +
+      release if pushing to parents' phone through Obtainium.
+
 **Next steps:**
 - [ ] Keep an eye on whether forwarding silently stops after long idle
       periods — Samsung can re-add an app to the sleeping-apps list over

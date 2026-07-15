@@ -24,4 +24,11 @@ object Prefs {
     fun destEmail(context: Context) = prefs(context).getString("dest_email", "") ?: ""
     fun keywords(context: Context) = prefs(context).getString("keywords", "") ?: ""
     fun lineLabel(context: Context) = prefs(context).getString("line_label", "") ?: ""
+
+    // Tracks whether we've ever fired the runtime permission request. Needed to
+    // tell "never asked yet" apart from "permanently denied" — Android's
+    // shouldShowRequestPermissionRationale returns false for both.
+    fun permissionsRequested(context: Context) = prefs(context).getBoolean("perms_requested", false)
+    fun setPermissionsRequested(context: Context) =
+        prefs(context).edit().putBoolean("perms_requested", true).apply()
 }
